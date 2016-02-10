@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="An MQTT Websocket interface">
+		<meta name="author" content="Mike Baylis">
+	
+		<title>Freescale FRDM-K64F MQTT Websocket Client Demo App</title>
+	
+		<!-- jQuery -->
+		<script type="text/javascript" src="assets/lib/jquery-1.12.0/js/jquery-1.12.0.min.js"></script>
+		
+		<!-- Bootstrap -->
+		<link href="assets/lib/bootstrap-3.3.6/css/bootstrap.min.css" rel="stylesheet" />
+		<script type="text/javascript" src="assets/lib/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+
+		<!-- Flat UI -->
+		<link href="assets/lib/flat-ui-master/css/flat-ui.css" rel="stylesheet" />
+		
+		<!-- Paho MQTT Websocket Client Library -->
+		<script type="text/javascript" src="assets/lib/paho.javascript-1.0.1/js/mqttws31.js"></script>
+		
+		
+		<link href="assets/common/css/styles.css" rel="stylesheet" />
+		
+		<script type="text/javascript">
+			var mqttBroker = "broker.mqttdashboard.com";
+			var port = 8000;
+			var clientId = "myclientid_" + parseInt(Math.random() * 100, 10);
+			var qosLevel = 0;
+			var topic;
+			var sw2Count = 0;
+			var sw3Count = 0;
+			
+			function checkTopic(topicId) {
+				topic = document.getElementById(topicId).value;
+				if (topic === "") {
+					document.getElementById("status").innerHTML = "please enter MQTT topic to subscribe to";
+				}
+				else {
+					client.connect(options);
+				}
+			}
+			
+			//toggles Connect and Disconnect button visibility
+			function buttonSwap(Id1, Id2) {
+				document.getElementById(Id1).style.display = "none";
+				document.getElementById(Id2).style.display = "initial";
+			}
+			
+			//Connect to MQTT Dashboard public broker with random client Id
+			var client = new Paho.MQTT.Client(mqttBroker, port, clientId);
+
+			//called if websocket/mqtt connection gets disconnected
+			client.onConnectionLost = function (responseObject) {
+				buttonSwap("disconnectButton", "connectButton");
+				document.getElementById("status").innerHTML = "status: disconnected " + responseObject.errorMessage;
+			};
+
+			//called when message for subscribed topics received
+			client.onMessageArrived = function (message) {
+				if (message.payloadString.indexOf("sw2") !== -1) {
+					sw2Count++;
+					document.getElementById("switch2").innerHTML = sw2Count;
+				}
+				else if (message.payloadString.indexOf("sw3") !== -1) {
+					sw3Count++;
+					document.getElementById("switch3").innerHTML = sw3Count;
+				}
+				$('#messages').prepend('<span>Topic: ' + message.destinationName + '  | ' + message.payloadString + '</span><br/>');
+			};
+
+			//Connect Options
+			var options = {
+				timeout: 3,
+				//called if connection successfully established
+				onSuccess: function () {
+					client.subscribe(topic, {qos: qosLevel});
+					buttonSwap("connectButton", "disconnectButton");
+					document.getElementById("status").innerHTML = "status: connected and subscribed to topic " + topic;
+				},
+				//called if connection could not be established
+				onFailure: function (message) {
+					document.getElementById("status").innerHTML = "status: connection failed " + responseObject.errorMessage;
+				}
+			};
+
+			//Publish message
+			var publish = function (payload) {
+				var message = new Paho.MQTT.Message(payload);
+				message.destinationName = topic;
+				message.qos = qosLevel;
+				client.send(message);
+			}
+		</script>
+	</head>
+
+	<body>
+	<div class="jumbotron">
+		<div class="container">
+			<h1>Freescale FRDM-K64F MQTT Demo</h1>
+			<p>A simple web app that uses the Eclipse Paho MQTT client Javascript library and MQTT Dashboard public broker.</p>
+			<form class="form-inline" role="form" action="#" onSubmit="checkTopic('topic');">
+				<div class="form-group">
+					<input type="topic" class="form-control" id="topic" placeholder="Enter MQTT topic">
+				</div>			
+				<button type="submit" class="btn btn-default btn-lg" id="connectButton">Connect</button>
+				<button type="button" class="btn btn-default btn-lg" id="disconnectButton" style="display:none" onclick="client.disconnect();">Disconnect</button>
+			</form>
+				<p></p>
+			<p id="status">status: disconnected</p>
+		</div> <!-- /container -->    
+	</div> <!-- /jumbotron -->
+	<p></p>
+	<p></p>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-1"></div>
+			<div class="col-md-2 center-block">
+				<div class="panel panel-default">
+					<div class="panel-body panel-body-led" style="min-height: 240px; max-height: 240px;">
+						<p><button type="button" class="btn btn-custom btn-danger center-block" onclick="publish('red');"><b>Red</b></button></p>
+						<p><button type="button" class="btn btn-custom btn-success center-block" onclick="publish('grn');"><b>Green</b></button></p>
+						<p><button type="button" class="btn btn-custom btn-info center-block" onclick="publish('blu');"><b>Blue</b></button></p>
+						<p><button type="button" class="btn btn-custom btn-default center-block" onclick="publish('off');"><b>Off</b></button></p>
+					</div>
+					<div class="panel-footer panel-footer-led text-center">LED Control</div>
+				</div>
+			</div>
+			<div class="col-md-1"></div>
+			<div class="col-md-2">
+				<div class="panel panel-default">
+					<div class="panel-body panel-body-sw" align="center" style="min-height: 95px; max-height: 95px;">
+						<p></p><p id="switch2">0</p>
+					</div>
+					<div class="panel-footer panel-footer-sw text-center">Switch 2 Count</div>
+					<div class="panel-body panel-body-sw" align="center" style="min-height: 95px; max-height: 95px;">
+						<p></p><p id="switch3">0</p>
+					</div>
+					<div class="panel-footer panel-footer-sw text-center">Switch 3 Count</div>
+				</div>
+			</div>
+			<div class="col-md-1"></div>
+			<div class="col-md-4">
+				<div class="panel panel-default">
+					<div class="panel-body" style="min-height: 240px; max-height: 240px; overflow-y:scroll;">
+						<p id="messages"></p>
+					</div>
+					<div class="panel-footer text-center">Message Log</div>
+				</div>
+			</div>
+			<div class="col-md-1"></div>
+		</div>
+	</div> <!-- /.container -->
+	</body>
+</html>

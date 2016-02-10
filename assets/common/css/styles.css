@@ -1,0 +1,27 @@
+.jumbotron {
+  background-color: #3498DB;
+	background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.jumbotron h1 {
+  color: #fff;
+  font-size: 36px;
+}
+
+.jumbotron p {
+  color: #fff;
+  font-size: 20px;
+}
+
+.btn-custom {
+	width: 78px !important;
+}
+
+#switch2 {
+  font-size: 30px;
+}
+
+#switch3 {
+  font-size: 30px;
+}
